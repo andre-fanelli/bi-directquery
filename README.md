@@ -135,15 +135,14 @@ projeto-bi-directquery/
 │   ├── 03_seed_facts.sql               # DML: Carga de 350.000+ vendas e metas comerciais
 │   ├── 04_create_views.sql             # Views e tabela agregada para Modelos Compostos
 │   ├── 05_security_roles.sql           # Usuário de leitura exclusivo para Power BI (pbi_user)
-│   └── 06_live_stream_generator.sql    # Engine PL/pgSQL para simulação de vendas live
+│   ├── 06_live_stream_generator.sql    # Engine PL/pgSQL para simulação de vendas live
+│   └── 07_inserir_vendas_teste.sql     # Script SQL para inserção de vendas de teste sob demanda
 ├── powerbi/
-│   ├── directquery_guide.md            # Passo a passo de conexão e boas práticas PL-300
-│   ├── live_dashboard_setup.md         # Guia de construção do Dashboard em tempo real (APR)
+│   ├── PROJETO_GUIADO_POWER_BI.md      # Manual completo passo a passo para construção do dashboard
+│   ├── directquery_guide.md            # Boas práticas de DirectQuery e modelagem dimensional PL-300
 │   └── sample_dax_measures.dax         # Fórmulas DAX prontas (Histórico + Streaming Live)
 ├── scripts/
-│   ├── dashboard_live.py               # Servidor web local com dashboard em tempo real (porta 8080)
-│   ├── simulate_live_sales.ps1         # Simulador de streaming contínuo em PowerShell
-│   └── simulate_live_sales.py          # Simulador alternativo em Python
+│   └── simulate_live_sales.ps1         # Simulador de streaming contínuo em PowerShell
 └── docs/
     └── star_schema_data_dictionary.md  # Dicionário completo de dados e regras de negócio
 ```
@@ -199,31 +198,27 @@ docker exec pbi-postgres-dw psql -U postgres -d dw_sales -c "SELECT schemaname, 
 
 ---
 
-## ⚡ Testando Atualizações em Tempo Real (Live DirectQuery)
+## ⚡ Testando Atualizações em Tempo Real no Power BI Desktop
 
-Para testar se o DirectQuery está respondendo instantaneamente a novos dados no PostgreSQL, você dispõe de duas ferramentas integradas:
+Siga o passo a passo completo no manual [powerbi/PROJETO_GUIADO_POWER_BI.md](powerbi/PROJETO_GUIADO_POWER_BI.md).
 
-### 1. Monitor Web Interativo em Tempo Real
-Inicie o servidor de monitoramento e abra no navegador:
-```bash
-python scripts/dashboard_live.py
-```
-- Acesse: **[http://localhost:8080](http://localhost:8080)**
-- A tela exibirá KPIs, gráficos por categoria/região e um **feed com as últimas compras inseridas**.
-- Clique no botão **"➕ Injetar Pedido Simulado"** ou veja a tela atualizar sozinha a cada 3 segundos!
+Para validar se o DirectQuery está respondendo instantaneamente no Power BI Desktop:
 
-### 2. Simulador de Vendas em Streaming (PowerShell / Python)
-Em um terminal separado, execute o simulador contínuo de vendas:
-```powershell
-# Modo streaming contínuo (1 pedido a cada 3 segundos):
-.\scripts\simulate_live_sales.ps1 -IntervalSeconds 3
+1. **Abra o Power BI Desktop** na página de monitoramento com **Atualização Automática de Página (APR)** configurada para 5 segundos.
+2. **Gere novos pedidos de teste** usando uma das opções abaixo:
+   - **Opção A (PowerShell):**
+     ```powershell
+     # Inserir um lote de 5 pedidos instantaneamente:
+     .\scripts\simulate_live_sales.ps1 -Batch 5
 
-# Ou gere um lote instantâneo de 15 pedidos:
-.\scripts\simulate_live_sales.ps1 -Batch 15
-```
-
-### 3. Visualização no Power BI Desktop com Atualização Automática de Página (APR)
-Siga o guia [powerbi/live_dashboard_setup.md](powerbi/live_dashboard_setup.md) para configurar a **Atualização Automática de Página** (a cada 5 segundos) no Power BI Desktop. Os cartões de *Vendas Hoje*, *Pedidos Hoje* e a tabela de últimos pedidos atualizarão automaticamente na sua tela conforme o simulador roda!
+     # Ou deixar o streaming contínuo ativo (1 venda a cada 3s):
+     .\scripts\simulate_live_sales.ps1 -IntervalSeconds 3
+     ```
+   - **Opção B (SQL Direto via Docker):**
+     ```powershell
+     docker exec pbi-postgres-dw psql -U postgres -d dw_sales -c "SELECT * FROM dw.fn_generate_live_sale(5);"
+     ```
+3. **Resultado:** Em 5 segundos, sem clicar em nada no Power BI, os cartões de *Receita Hoje*, *Pedidos Hoje* e a tabela de últimos pedidos atualizam automaticamente na tela!
 
 ---
 
