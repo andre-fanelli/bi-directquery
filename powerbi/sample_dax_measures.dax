@@ -148,3 +148,52 @@ IF(
         DENSE
     )
 )
+
+
+// ------------------------------------------------------------------------------
+// 6. MONITORAMENTO EM TEMPO REAL (Display Folder: 06 - Live Streaming)
+// ------------------------------------------------------------------------------
+// Medidas para validar o DirectQuery com Atualização Automática de Página (APR)
+
+[Data Hoje Key] = 
+YEAR(TODAY()) * 10000 + MONTH(TODAY()) * 100 + DAY(TODAY())
+
+[Receita Hoje - Live] = 
+CALCULATE(
+    [Receita Líquida],
+    FILTER(
+        dim_date,
+        dim_date[date_key] = [Data Hoje Key]
+    )
+)
+
+[Qtd Pedidos Hoje - Live] = 
+CALCULATE(
+    [Qtd de Pedidos],
+    FILTER(
+        dim_date,
+        dim_date[date_key] = [Data Hoje Key]
+    )
+)
+
+[Ticket Médio Hoje] = 
+DIVIDE([Receita Hoje - Live], [Qtd Pedidos Hoje - Live], 0)
+
+[Lucro Hoje - Live] = 
+CALCULATE(
+    [Lucro Bruto],
+    FILTER(
+        dim_date,
+        dim_date[date_key] = [Data Hoje Key]
+    )
+)
+
+[Margem Hoje %] = 
+DIVIDE([Lucro Hoje - Live], [Receita Hoje - Live], 0)
+
+[Último Horário de Pedido] = 
+COALESCE(
+    MAX(vw_live_recent_sales[order_time]),
+    "Sem novos pedidos hoje"
+)
+

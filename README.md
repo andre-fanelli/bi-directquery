@@ -134,10 +134,16 @@ projeto-bi-directquery/
 │   ├── 02_seed_dimensions.sql          # DML: Carga de dimensões (Datas, Clientes, Produtos, Lojas, Canais)
 │   ├── 03_seed_facts.sql               # DML: Carga de 350.000+ vendas e metas comerciais
 │   ├── 04_create_views.sql             # Views e tabela agregada para Modelos Compostos
-│   └── 05_security_roles.sql           # Usuário de leitura exclusivo para Power BI (pbi_user)
+│   ├── 05_security_roles.sql           # Usuário de leitura exclusivo para Power BI (pbi_user)
+│   └── 06_live_stream_generator.sql    # Engine PL/pgSQL para simulação de vendas live
 ├── powerbi/
 │   ├── directquery_guide.md            # Passo a passo de conexão e boas práticas PL-300
-│   └── sample_dax_measures.dax         # Fórmulas DAX prontas para uso no modelo
+│   ├── live_dashboard_setup.md         # Guia de construção do Dashboard em tempo real (APR)
+│   └── sample_dax_measures.dax         # Fórmulas DAX prontas (Histórico + Streaming Live)
+├── scripts/
+│   ├── dashboard_live.py               # Servidor web local com dashboard em tempo real (porta 8080)
+│   ├── simulate_live_sales.ps1         # Simulador de streaming contínuo em PowerShell
+│   └── simulate_live_sales.py          # Simulador alternativo em Python
 └── docs/
     └── star_schema_data_dictionary.md  # Dicionário completo de dados e regras de negócio
 ```
@@ -189,8 +195,35 @@ docker exec pbi-postgres-dw psql -U postgres -d dw_sales -c "SELECT schemaname, 
 3. Autenticação (Aba **Banco de Dados**):
    - **Usuário:** `pbi_user`
    - **Senha:** `pbi_pass_123`
-4. Selecione todas as tabelas do schema `dw`.
 5. Consulte o arquivo [powerbi/directquery_guide.md](powerbi/directquery_guide.md) para configurar os relacionamentos, ativar a **Integridade Referencial** e usar as medidas prontas de [powerbi/sample_dax_measures.dax](powerbi/sample_dax_measures.dax).
+
+---
+
+## ⚡ Testando Atualizações em Tempo Real (Live DirectQuery)
+
+Para testar se o DirectQuery está respondendo instantaneamente a novos dados no PostgreSQL, você dispõe de duas ferramentas integradas:
+
+### 1. Monitor Web Interativo em Tempo Real
+Inicie o servidor de monitoramento e abra no navegador:
+```bash
+python scripts/dashboard_live.py
+```
+- Acesse: **[http://localhost:8080](http://localhost:8080)**
+- A tela exibirá KPIs, gráficos por categoria/região e um **feed com as últimas compras inseridas**.
+- Clique no botão **"➕ Injetar Pedido Simulado"** ou veja a tela atualizar sozinha a cada 3 segundos!
+
+### 2. Simulador de Vendas em Streaming (PowerShell / Python)
+Em um terminal separado, execute o simulador contínuo de vendas:
+```powershell
+# Modo streaming contínuo (1 pedido a cada 3 segundos):
+.\scripts\simulate_live_sales.ps1 -IntervalSeconds 3
+
+# Ou gere um lote instantâneo de 15 pedidos:
+.\scripts\simulate_live_sales.ps1 -Batch 15
+```
+
+### 3. Visualização no Power BI Desktop com Atualização Automática de Página (APR)
+Siga o guia [powerbi/live_dashboard_setup.md](powerbi/live_dashboard_setup.md) para configurar a **Atualização Automática de Página** (a cada 5 segundos) no Power BI Desktop. Os cartões de *Vendas Hoje*, *Pedidos Hoje* e a tabela de últimos pedidos atualizarão automaticamente na sua tela conforme o simulador roda!
 
 ---
 

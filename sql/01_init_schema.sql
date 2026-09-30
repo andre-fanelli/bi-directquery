@@ -147,7 +147,8 @@ CREATE TABLE dw.fact_sales (
     net_sales_amount    NUMERIC(12, 2) NOT NULL,
     total_cost_amount   NUMERIC(12, 2) NOT NULL,
     margin_amount       NUMERIC(12, 2) NOT NULL,
-    tax_amount          NUMERIC(12, 2) NOT NULL
+    tax_amount          NUMERIC(12, 2) NOT NULL,
+    created_at          TIMESTAMP WITH TIME ZONE DEFAULT clock_timestamp()
 );
 
 -- ------------------------------------------------------------------------------
@@ -179,6 +180,7 @@ CREATE INDEX idx_fact_sales_store       ON dw.fact_sales (store_key);
 CREATE INDEX idx_fact_sales_channel     ON dw.fact_sales (channel_key);
 CREATE INDEX idx_fact_sales_promotion   ON dw.fact_sales (promotion_key);
 CREATE INDEX idx_fact_sales_status      ON dw.fact_sales (order_status);
+CREATE INDEX idx_fact_sales_created_at  ON dw.fact_sales (created_at DESC);
 
 -- Composite Index for Common Time-Series Aggregations
 CREATE INDEX idx_fact_sales_date_prod   ON dw.fact_sales (order_date_key, product_key);
