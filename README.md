@@ -210,9 +210,7 @@ docker exec pbi-postgres-dw psql -U postgres -d dw_sales -c "SELECT schemaname, 
 Este projeto já está inicializado com repositório Git local. Para realizar o backup no seu GitHub:
 
 ```bash
-# 1. Crie um repositório vazio no seu GitHub (ex: projeto-bi-directquery)
-# 2. Vincule a origem remota e envie:
-git remote add origin https://github.com/SEU_USUARIO/projeto-bi-directquery.git
+git remote add origin https://github.com/andre-fanelli/bi-directquery.git
 git branch -M main
 git push -u origin main
 ```
