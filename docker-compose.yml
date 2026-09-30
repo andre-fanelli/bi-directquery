@@ -1,0 +1,28 @@
+services:
+  postgres-dw:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: postgres-dw-alpine:1.0.0
+    container_name: pbi-postgres-dw
+    restart: unless-stopped
+    ports:
+      # Port mapped to 5433 on the host to avoid collision with standard 5432
+      - "${POSTGRES_PORT:-5433}:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-dw_sales}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - pgdata_pbi:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${POSTGRES_DB:-dw_sales}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  pgdata_pbi:
+    name: pbi_dw_postgres_data

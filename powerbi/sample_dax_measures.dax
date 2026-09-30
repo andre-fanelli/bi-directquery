@@ -1,0 +1,150 @@
+// ==============================================================================
+// MEDIDAS DAX - PROJETO BI DIRECTQUERY (PREPARAÇÃO PL-300)
+// ==============================================================================
+// Dica PL-300: Em DirectQuery, o DAX é traduzido em consultas SQL em tempo real (Query Folding).
+// Evite funções iterativas pesadas (SUMX com cálculos complexos) no DirectQuery.
+// ==============================================================================
+
+// ------------------------------------------------------------------------------
+// 1. MÉTRICAS BÁSICAS E DE FATURAMENTO
+// ------------------------------------------------------------------------------
+
+[Receita Bruta] = 
+SUM(fact_sales[gross_sales_amount])
+
+[Desconto Total] = 
+SUM(fact_sales[discount_amount])
+
+[Receita Líquida] = 
+SUM(fact_sales[net_sales_amount])
+
+[Custo Total] = 
+SUM(fact_sales[total_cost_amount])
+
+[Lucro Bruto] = 
+[Receita Líquida] - [Custo Total]
+
+[Margem %] = 
+DIVIDE([Lucro Bruto], [Receita Líquida], 0)
+
+[Quantidade Vendida] = 
+SUM(fact_sales[quantity])
+
+[Qtd de Pedidos] = 
+DISTINCTCOUNT(fact_sales[order_id])
+
+[Ticket Médio] = 
+DIVIDE([Receita Líquida], [Qtd de Pedidos], 0)
+
+[Desconto Médio %] = 
+DIVIDE([Desconto Total], [Receita Bruta], 0)
+
+
+// ------------------------------------------------------------------------------
+// 2. DIMENSÃO COM DUPLO PAPEL / ROLE-PLAYING (Data do Pedido vs Data de Envio)
+// ------------------------------------------------------------------------------
+// Relacionamento ativo: dim_date[date_key] -> fact_sales[order_date_key]
+// Relacionamento inativo: dim_date[date_key] -> fact_sales[ship_date_key]
+
+[Receita por Data de Envio] = 
+CALCULATE(
+    [Receita Líquida],
+    USERELATIONSHIP(fact_sales[ship_date_key], dim_date[date_key])
+)
+
+[Pedidos Enviados] = 
+CALCULATE(
+    [Qtd de Pedidos],
+    USERELATIONSHIP(fact_sales[ship_date_key], dim_date[date_key])
+)
+
+
+// ------------------------------------------------------------------------------
+// 3. INTELIGÊNCIA TEMPORAL EM DIRECTQUERY (TIME INTELLIGENCE)
+// ------------------------------------------------------------------------------
+// Requer dim_date física (Auto Date/Time não funciona em DirectQuery)
+
+[Receita YTD] = 
+TOTALYTD(
+    [Receita Líquida],
+    dim_date[full_date]
+)
+
+[Receita MTD] = 
+TOTALMTD(
+    [Receita Líquida],
+    dim_date[full_date]
+)
+
+[Receita QTD] = 
+TOTALQTD(
+    [Receita Líquida],
+    dim_date[full_date]
+)
+
+[Receita Ano Anterior (SPLY)] = 
+CALCULATE(
+    [Receita Líquida],
+    SAMEPERIODLASTYEAR(dim_date[full_date])
+)
+
+[Crescimento YoY Valor] = 
+[Receita Líquida] - [Receita Ano Anterior (SPLY)]
+
+[Crescimento YoY %] = 
+DIVIDE([Crescimento YoY Valor], [Receita Ano Anterior (SPLY)], 0)
+
+
+// ------------------------------------------------------------------------------
+// 4. METAS E ANÁLISE DE VARIAÇÃO (GRANULARIDADES DISTINTAS)
+// ------------------------------------------------------------------------------
+// fact_sales_target está em nível de Mês, Categoria e Região
+
+[Meta de Vendas] = 
+SUM(fact_sales_target[target_sales_amount])
+
+[Variação Meta Valor] = 
+[Receita Líquida] - [Meta de Vendas]
+
+[% Atingimento de Meta] = 
+DIVIDE([Receita Líquida], [Meta de Vendas], 0)
+
+[Status Meta Indicador] = 
+SWITCH(
+    TRUE(),
+    ISBLANK([Meta de Vendas]), BLANK(),
+    [% Atingimento de Meta] >= 1.00, "🟢 Atingida",
+    [% Atingimento de Meta] >= 0.90, "🟡 Próxima",
+    "🔴 Abaixo"
+)
+
+
+// ------------------------------------------------------------------------------
+// 5. RANKING E PARTICIPAÇÃO
+// ------------------------------------------------------------------------------
+
+[Share da Categoria %] = 
+DIVIDE(
+    [Receita Líquida],
+    CALCULATE([Receita Líquida], ALLSELECTED(dim_product[category])),
+    0
+)
+
+[Share do Canal %] = 
+DIVIDE(
+    [Receita Líquida],
+    CALCULATE([Receita Líquida], ALLSELECTED(dim_channel[channel_name])),
+    0
+)
+
+[Ranking Produtos por Receita] = 
+IF(
+    ISINSCOPE(dim_product[product_name]),
+    RANKX(
+        ALLSELECTED(dim_product[product_name]),
+        [Receita Líquida],
+        ,
+        DESC,
+        DENSE
+    )
+)

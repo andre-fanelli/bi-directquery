@@ -1,0 +1,22 @@
+# Environment variables
+.env
+
+# Docker data volumes (if local bind mount is used)
+data/
+pgdata/
+
+# Logs
+*.log
+
+# OS generated files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Power BI temporary files
+*.tmp
+~$*
+
+# IDE / Editor folders
+.vscode/
+.idea/
